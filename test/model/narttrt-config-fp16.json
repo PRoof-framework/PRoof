@@ -1,0 +1,14 @@
+{
+    "default_net_type_token":"tensorrt",
+    "rand_input": false,
+
+    "data_num": 0,
+
+    "tensorrt": {
+        "use_fp16": true,
+        "use_int8": false,
+        "dynamic_shape": true,
+        "fp32_layers": [],
+        "blob_range": null
+    }
+}

@@ -1,0 +1,10 @@
+# pybind11
+numpy==1.23 # ==1.23 for onnx_tool
+onnx
+onnx_tool==0.7.4
+coloredlogs
+
+# ploting
+adjustText
+matplotlib
+pandas

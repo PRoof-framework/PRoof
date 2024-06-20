@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="">
+    <title>PRoof dataviewer</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-rbsA2VBKQhggwzxH7pPCaAqO46MgnOM80zW1RWuH61DGLwZJEdK2Kadq2F9CUG65" crossorigin="anonymous">
+
+    <link href="assets/common.css" rel="stylesheet">
+  </head>
+  <body>
+
+<header class="navbar navbar-dark sticky-top bg-dark flex-md-nowrap p-0 shadow">
+  <a class="navbar-brand col-md-3 col-lg-2 me-0 px-3 fs-6" href="#">PRoof dataviewer</a>
+  <button class="navbar-toggler position-absolute d-md-none collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sidebarMenu" aria-controls="sidebarMenu" aria-expanded="false" aria-label="Toggle navigation">
+    <span class="navbar-toggler-icon"></span>
+  </button>
+  <span class="navbar-text ms-4 me-md-4 me-auto">
+    Model: {{ data['model']['name'] }}
+  </span>
+  <!-- <input class="form-control form-control-dark w-100 rounded-0 border-0" type="text" placeholder="Search" aria-label="Search"> -->
+</header>
+
+<div class="container-fluid">
+  <div class="row">
+    <nav id="sidebarMenu" class="col-md-3 col-lg-2 d-md-block bg-light sidebar collapse">
+      <div class="position-sticky pt-3 sidebar-sticky">
+        <ul class="nav flex-column">
+          <li class="nav-item">
+            <a class="nav-link" href="index.html">
+              <span data-feather="home" class="align-text-bottom"></span>
+              Summary
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="model.html">
+              <span data-feather="file" class="align-text-bottom"></span>
+              Model analyze
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link disabled" href="#">
+              <span data-feather="bar-chart-2" class="align-text-bottom"></span>
+              End-to-end performance
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link active" aria-current="page" href="layer-{{ data['model']['bench']['batch_size_list'][0] }}.html">
+              <span data-feather="layers" class="align-text-bottom"></span>
+              Layer performance
+            </a>
+          </li>
+        </ul>
+
+        <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-muted text-uppercase">
+          <span>batch size</span>
+        </h6>
+        <ul class="nav flex-column mb-2">
+          {% for b in data['model']['bench']['batch_size_list'] %}
+            <li class="nav-item">
+              <a class="nav-link {% if batch_size == b %}active{% endif %}"
+                href="layer-{{ b }}.html">
+                <span data-feather="grid" class="align-text-bottom"></span>
+               {{ b }}
+              </a>
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+    </nav>
+
+    <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+      <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <h1 class="h2">Layer performance</h1>
+        <div class="btn-toolbar mb-2 mb-md-0">
+          <pre class="mb-0">batch_size = {{ batch_size }}</pre>
+        </div>
+      </div>
+
+      <h2 class="h4">Roofline chart</h2>
+      <canvas class="w-100" id="roofline-chart" width="900" height="380"></canvas>
+      <div class="mb-4">
+        <div>Coordinate axis type:</div>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="radio" name="chart-axis-type" id="chart-axis-type-linear" value="linear" autocomplete="off" checked
+            onclick="chart_set_axis(chart, 'linear')">
+          <label class="form-check-label" for="chart-axis-type-linear">Linear</label>
+        </div>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="radio" name="chart-axis-type" id="chart-axis-type-logarithmic" value="logarithmic" autocomplete="off"
+            onclick="chart_set_axis(chart, 'logarithmic')">
+          <label class="form-check-label" for="chart-axis-type-logarithmic">Logarithmic</label>
+        </div>
+      </div>
+
+
+      <h2 class="h4">Layer details</h2>
+      <div class="table-responsive">
+        <table class="table table-striped table-sm font-monospace">
+          <thead>
+            <tr>
+              <th scope="col">#</th>
+              <th scope="col">Name</th>
+              <th scope="col" class="text-end">Median time (ms)</th>
+              <th scope="col" class="text-end">Percentage</th>
+              <th scope="col" class="text-end">Effective GFLOPS</th>
+              <th scope="col" class="text-end">Memory bandwidth (GB/s)</th>
+              <th scope="col" class="text-end">FLOPs</th>
+              <th scope="col" class="text-end">Memory I/O</th>
+              <th scope="col p-0" class="text-end"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for layer in data['model']['bench']['results'][batch_size|string]['layer_prof'] %}
+              <tr>
+                <th>{{ loop.index }}{% if layer['extra']['tensorcore_used'] %} T{% endif %}</th>
+                <td>{{ layer['name'] }}</td>
+                <td class="text-end">{{ "%.6f"|format(layer['median_time'] * 1000) }}</td>
+                <td class="text-end">{{ "%.2f"|format(layer['time_percentage']) }}%</td>
+                <td class="text-end">{{ "%.6f"|format(layer['flops'] / layer['median_time'] / 1e9) }}</td>
+                <td class="text-end">{{ "%.6f"|format(layer['memory'] / layer['median_time'] / 1e9) }}</td>
+                <td class="text-end">{{ "%.3f"|format(layer['flops'] / 1e6) }} M</td>
+                <td class="text-end">{{ "%.3f"|format(layer['memory'] / 1e6) }} MB</td>
+                {% if layer['extra'] %}
+                  <td class="text-end">
+                    <a data-bs-toggle="collapse" href="#layers-{{ loop.index }}-extra" role="button" aria-expanded="false" aria-controls="layers-{{ loop.index }}-extra">More</a>
+                  </td>
+                {% endif %}
+              </tr>
+              {% if layer['extra'] %}
+                <tr></tr>
+                <tr>
+                  <th class="p-0"></th>
+                  <td class="p-0"colspan="8"><div class="collapse" id="layers-{{ loop.index }}-extra"><small>{{ layer['extra'] }}</small></div></td>
+                </tr>
+              {% endif %}
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </main>
+  </div>
+</div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-kenU1KFdBIe4zVF0s0G1M5b4hcpxyD9F7jL+jjXkk+Q2h455rYXK/7HAuoJl+0I4" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/feather-icons@4.28.0/dist/feather.min.js" integrity="sha384-uO3SXW5IuS1ZpFPKugNNWqTZRRglnUJK6UAZ/gxOX80nxEkN9NcGZTftn6RzhGWE" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.2.1/dist/chart.umd.min.js" integrity="sha384-gdQErvCNWvHQZj6XZM0dNsAoY4v+j5P1XDpNkcM3HJG1Yx04ecqIHk7+4VBOCHOG" crossorigin="anonymous"></script>
+    <script src="assets/common.js"></script>
+    <script src="assets/roofline-chart.js"></script>
+    <script>
+      'use strict'
+
+      // Graphs
+      const ctx = document.getElementById('roofline-chart')
+
+      let raw_data = [
+        {% for layer in data['model']['bench']['results'][batch_size|string]['layer_prof'] %}
+          {
+            x: {{ layer['flops'] / layer['memory'] if layer['memory'] else 0 }},
+            y: {{ layer['flops'] / layer['median_time'] / 1e9 if layer['median_time'] else 0}},
+            r: 5,
+            time: {{ layer['median_time'] }},
+            memory: {{ layer['memory'] / layer['median_time'] / 1e9 }},
+            percentage: {{ layer['time_percentage'] }},
+            idx: {{ loop.index }},
+            name: "{{ layer['name'] }}"
+          },
+        {% endfor %}
+      ];
+
+      let chart = roofline_chart(ctx, raw_data);
+    </script>
+  </body>
+</html>

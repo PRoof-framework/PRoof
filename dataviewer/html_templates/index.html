@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="">
+    <title>PRoof dataviewer</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-rbsA2VBKQhggwzxH7pPCaAqO46MgnOM80zW1RWuH61DGLwZJEdK2Kadq2F9CUG65" crossorigin="anonymous">
+
+    <link href="assets/common.css" rel="stylesheet">
+  </head>
+  <body>
+
+<header class="navbar navbar-dark sticky-top bg-dark flex-md-nowrap p-0 shadow">
+  <a class="navbar-brand col-md-3 col-lg-2 me-0 px-3 fs-6" href="#">PRoof dataviewer</a>
+  <button class="navbar-toggler position-absolute d-md-none collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sidebarMenu" aria-controls="sidebarMenu" aria-expanded="false" aria-label="Toggle navigation">
+    <span class="navbar-toggler-icon"></span>
+  </button>
+  <span class="navbar-text ms-4 me-md-4 me-auto">
+    Model: {{ data['model']['name'] }}
+  </span>
+  <!-- <input class="form-control form-control-dark w-100 rounded-0 border-0" type="text" placeholder="Search" aria-label="Search"> -->
+</header>
+
+<div class="container-fluid">
+  <div class="row">
+    <nav id="sidebarMenu" class="col-md-3 col-lg-2 d-md-block bg-light sidebar collapse">
+      <div class="position-sticky pt-3 sidebar-sticky">
+        <ul class="nav flex-column">
+          <li class="nav-item">
+            <a class="nav-link active" aria-current="page" href="index.html">
+              <span data-feather="home" class="align-text-bottom"></span>
+              Summary
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="model.html">
+              <span data-feather="file" class="align-text-bottom"></span>
+              Model analyze
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link disabled" href="#">
+              <span data-feather="bar-chart-2" class="align-text-bottom"></span>
+              End-to-end performance
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="layer-{{ data['model']['bench']['batch_size_list'][0] }}.html">
+              <span data-feather="layers" class="align-text-bottom"></span>
+              Layer performance
+            </a>
+          </li>
+        </ul>
+
+      </div>
+    </nav>
+
+    <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+      <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <h1 class="h2">Summary</h1>
+      </div>
+
+      <div class="table-responsive col-xl-9">
+        <table class="table">
+          <thead>
+            <tr>
+              <th scope="col">Name</th>
+              <th scope="col">Value</th>
+            </tr>
+          </thead>
+          <tbody class="table-group-divider">
+            <tr>
+              <th scope="row">Subjects</th>
+              <td>{{ data['subjects'] }}</td>
+            </tr>
+            <tr>
+              <th scope="row">Model name</th>
+              <td>{{ data['model']['name'] }}</td>
+            </tr>
+            <tr>
+              <th scope="row">Model path</th>
+              <td>{{ data['model']['path'] }}</td>
+            </tr>
+            <tr>
+              <th scope="row">Backend</th>
+              <td>{{ data['model']['backend'] }}</td>
+            </tr>
+            <tr>
+              <th scope="row">Backend addition option</th>
+              <td>"{{ data['model']['backend_options'] }}"</td>
+            </tr>
+            <tr>
+              <th scope="row">Backend version info</th>
+              <td><pre class="mb-0">{{ data['model']['backend_version_info'] }}</pre></td>
+            </tr>
+            <tr>
+              <th scope="row">Data width</th>
+              <td>in ONNX: {{ data['model']['data_width_onnx'] }}bit, in backend: {{ data['model']['data_width_backend'] }}bit</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2 class="h4">Hardware Performance</h2>
+      <canvas class="my-4 w-100" id="flops-bs-chart" width="900" height="380"></canvas>
+
+      <h2 class="h4">Tested Batch Size</h2>
+      <div class="table-responsive">
+        <table class="table table-striped table-sm font-monospace">
+          <thead>
+            <tr>
+              <th scope="col">batch_size</th>
+              <th scope="col" class="text-end">Average latency (ms)</th>
+              <th scope="col" class="text-end">Effective GFLOPS</th>
+              <th scope="col" class="text-end">Memory bandwidth (GB/s)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for batch_size in data['model']['bench']['batch_size_list'] %}
+              <tr>
+                <th scope="row">{{ batch_size }}</th>
+                <td class="text-end">{{ "%.6f"|format(data['model']['bench']['results'][batch_size|string]['time_avg'] * 1000) }}</td>
+                <td class="text-end">{{ "%.6f"|format(data['model']['bench']['results'][batch_size|string]['flops_avg'] / 1e9) }}</td>
+                <td class="text-end">{{ "%.6f"|format(data['model']['bench']['results'][batch_size|string]['memory_avg'] / 1e9) }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </main>
+  </div>
+</div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-kenU1KFdBIe4zVF0s0G1M5b4hcpxyD9F7jL+jjXkk+Q2h455rYXK/7HAuoJl+0I4" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/feather-icons@4.28.0/dist/feather.min.js" integrity="sha384-uO3SXW5IuS1ZpFPKugNNWqTZRRglnUJK6UAZ/gxOX80nxEkN9NcGZTftn6RzhGWE" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.2.1/dist/chart.umd.min.js" integrity="sha384-gdQErvCNWvHQZj6XZM0dNsAoY4v+j5P1XDpNkcM3HJG1Yx04ecqIHk7+4VBOCHOG" crossorigin="anonymous"></script>
+    <script src="assets/common.js"></script>
+    <script>
+      'use strict'
+
+      // Graphs
+      const ctx = document.getElementById('flops-bs-chart')
+
+      let raw_data = [
+        {% for batch_size in data['model']['bench']['batch_size_list'] %}
+          {{ data['model']['bench']['results'][batch_size|string]['flops_avg'] / 1e9 }},
+        {% endfor %}
+      ];
+
+      const data = {
+        labels: [
+          {% for batch_size in data['model']['bench']['batch_size_list'] %}
+            {{ batch_size }},
+          {% endfor %}
+        ],
+        datasets: [{
+          label: "Effective GFLOPS",
+          data: raw_data,
+        }],
+      };
+
+      const config = {
+        type: 'line',
+        data: data,
+        options: {
+          scales: {
+            x: {
+              position: 'bottom',
+              title: {
+                  display: true,
+                  text: "batch_size"
+              }
+            },
+            y: {
+                position: 'left',
+                title: {
+                    display: true,
+                    text: "Performance (GFLOPS)"
+                }
+            }
+          },
+        }
+      };
+      const flops_bs_chart = new Chart(ctx, config)
+    </script>
+  </body>
+</html>
